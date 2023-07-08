@@ -11,6 +11,10 @@
 
 class VFuncBase {
 public:
+	virtual ~VFuncBase()
+	{
+	}
+
 	VFUNC_DECLARE(0);
 	VFUNC_DECLARE(1);
 	VFUNC_DECLARE(2);

@@ -14,7 +14,10 @@ int main()
 
 	uint32_t *arr = (uint32_t *)malloc(sizeof(uint32_t) * ARR_SIZE);
 	for (uint32_t i = 0; i < ARR_SIZE; i++) {
-		uint32_t r = rand() % (30000 + 47);
+		uint32_t r = 0;
+		r = rand() % (30000 + 47);
+		// r = rand() % 50;
+
 		if (r < 10000) {
 			arr[i] = 0;
 		} else if (r >= 10000 && r < 20000) {
@@ -24,8 +27,6 @@ int main()
 		} else {
 			arr[i] = r - 30000 + 3;
 		}
-
-		r = rand() % 50;
 
 		if (cnt_dict.find(arr[i]) != cnt_dict.end()) {
 			cnt_dict[arr[i]]++;

@@ -4,6 +4,8 @@
 #include <chrono>
 #include <map>
 
+#define ARR_SIZE 1000000
+
 static fnCallback callbacks[50] = {
 	// func_call0,	 func_call1,  func_call2,  func_call3,	func_call4,
 	// func_call5,	 func_call6,  func_call7,  func_call8,	func_call9,
@@ -39,8 +41,6 @@ static vfnCallback vcallbacks[50] = {
 	vfunc_call40, vfunc_call41, vfunc_call42, vfunc_call43, vfunc_call44,
 	vfunc_call45, vfunc_call46, vfunc_call47, vfunc_call48, vfunc_call49,
 };
-
-#define ARR_SIZE 1000000
 
 void run_func(uint32_t *arr)
 {
@@ -78,9 +78,60 @@ void run_vfunc(uint32_t *arr)
 	auto elapsed =
 		std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
 	LOG_INFO("vfn use: %llu ns", (unsigned long long)elapsed.count());
+
+	delete vfn;
 }
 
-uint32_t do_nothing(uint32_t a, uint32_t n) {
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+void run_func_with_likely(uint32_t *arr)
+{
+	uint32_t a = 0;
+	std::chrono::steady_clock::time_point begin;
+	std::chrono::steady_clock::time_point end;
+
+	begin = std::chrono::steady_clock::now();
+	for (uint32_t i = 0; i < ARR_SIZE; i++) {
+		if (__builtin_expect(arr[i], 0)) {
+			a = callback0(a, i);
+		} else {
+			a = callbacks[arr[i]](a, i);
+		}
+	}
+	end = std::chrono::steady_clock::now();
+
+	auto elapsed =
+		std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+	LOG_INFO("fn use: %llu ns", (unsigned long long)elapsed.count());
+}
+
+void run_vfunc_with_likely(uint32_t *arr)
+{
+	uint32_t a = 0;
+	std::chrono::steady_clock::time_point begin;
+	std::chrono::steady_clock::time_point end;
+
+	VFuncBase *vfn = new VFuncImpl();
+
+	begin = std::chrono::steady_clock::now();
+	for (uint32_t i = 0; i < ARR_SIZE; i++) {
+		if (__builtin_expect(arr[i], 0)) {
+			a = vfunc_call0(vfn, a, i);
+		} else {
+			a = vcallbacks[arr[i]](vfn, a, i);
+		}
+	}
+	end = std::chrono::steady_clock::now();
+
+	auto elapsed =
+		std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
+	LOG_INFO("vfn use: %llu ns", (unsigned long long)elapsed.count());
+
+	delete vfn;
+}
+#endif
+
+uint32_t do_something(uint32_t a, uint32_t n)
+{
 	return a + n;
 }
 
@@ -95,7 +146,7 @@ void run_empty(uint32_t *arr)
 
 	begin = std::chrono::steady_clock::now();
 	for (uint32_t i = 0; i < ARR_SIZE; i++) {
-		a = do_nothing(a, i);
+		a = do_something(a, i);
 	}
 	end = std::chrono::steady_clock::now();
 
@@ -110,18 +161,37 @@ void run(uint32_t *arr, char flag)
 		run_func(arr);
 	} else if (flag == 'v') {
 		run_vfunc(arr);
+	} else if (flag == 'F') {
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+		run_func_with_likely(arr);
+#else
+		LOG_ERROR("unsupport __builtin_expect");
+#endif
+	} else if (flag == 'V') {
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+		run_vfunc_with_likely(arr);
+#else
+		LOG_ERROR("unsupport __builtin_expect");
+#endif
 	} else if (flag == 'a') {
 		run_func(arr);
 		run_vfunc(arr);
+#if defined(__clang__) || defined(__GNUC__) || defined(__GNUG__)
+		run_func_with_likely(arr);
+		run_vfunc_with_likely(arr);
+#endif
 	} else if (flag == 'e') {
 		run_empty(arr);
 	} else {
 		LOG_ERROR("invalid flags");
-		LOG_ERROR("flag options:\n"
-				  "\tf: call function pointer\n"
-				  "\tv: call virtual function\n"
-				  "\ta: call function pointer and virtual function\n"
-				  "\te: call empty");
+		LOG_ERROR(
+			"flag options:\n"
+			"\tf: call function pointer\n"
+			"\tv: call virtual function\n"
+			"\tF: [gcc/clang] call function pointer with __builtin_expect\n"
+			"\tV: [gcc/clang] call virtual function with __builtin_expect\n"
+			"\ta: call function pointer and virtual function\n"
+			"\te: call empty");
 	}
 }
 
@@ -130,12 +200,15 @@ int main(int argc, char *argv[])
 	muggle_log_complicated_init(LOG_LEVEL_DEBUG, -1, NULL);
 
 	if (argc != 2) {
-		LOG_ERROR("Usage: %s <f|v|a|e>\n"
-				  "\tf: call function pointer\n"
-				  "\tv: call virtual function\n"
-				  "\ta: call function pointer and virtual function\n"
-				  "\te: call empty",
-				  argv[0]);
+		LOG_ERROR(
+			"Usage: %s <f|v|a|e>\n"
+			"\tf: call function pointer\n"
+			"\tv: call virtual function\n"
+			"\tF: [gcc/clang] call function pointer with __builtin_expect\n"
+			"\tV: [gcc/clang] call virtual function with __builtin_expect\n"
+			"\ta: call function pointer and virtual function\n"
+			"\te: call empty",
+			argv[0]);
 		exit(EXIT_FAILURE);
 	}
 
@@ -156,6 +229,8 @@ int main(int argc, char *argv[])
 	// for (int i = 0; i < 16; i++) {
 	//     run(arr, argv[1][0]);
 	// }
+
+	free(arr);
 
 	return 0;
 }
