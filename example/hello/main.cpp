@@ -101,7 +101,8 @@ void run_func_with_likely(uint32_t *arr)
 
 	auto elapsed =
 		std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
-	LOG_INFO("fn use: %llu ns", (unsigned long long)elapsed.count());
+	LOG_INFO("fn with builtin_expect use: %llu ns",
+			 (unsigned long long)elapsed.count());
 }
 
 void run_vfunc_with_likely(uint32_t *arr)
@@ -124,7 +125,8 @@ void run_vfunc_with_likely(uint32_t *arr)
 
 	auto elapsed =
 		std::chrono::duration_cast<std::chrono::nanoseconds>(end - begin);
-	LOG_INFO("vfn use: %llu ns", (unsigned long long)elapsed.count());
+	LOG_INFO("vfn with builtin_expect use: %llu ns",
+			 (unsigned long long)elapsed.count());
 
 	delete vfn;
 }
