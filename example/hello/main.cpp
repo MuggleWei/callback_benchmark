@@ -91,7 +91,7 @@ void run_func_with_likely(uint32_t *arr)
 
 	begin = std::chrono::steady_clock::now();
 	for (uint32_t i = 0; i < ARR_SIZE; i++) {
-		if (__builtin_expect(arr[i] == 0, 1)) {
+		if (__builtin_expect(!!(arr[i] == 0), 1)) {
 			a = callback0(a, i);
 		} else {
 			a = callbacks[arr[i]](a, i);
@@ -115,7 +115,7 @@ void run_vfunc_with_likely(uint32_t *arr)
 
 	begin = std::chrono::steady_clock::now();
 	for (uint32_t i = 0; i < ARR_SIZE; i++) {
-		if (__builtin_expect(arr[i] == 0, 1)) {
+		if (__builtin_expect(!!(arr[i] == 0), 1)) {
 			a = vfunc_call0(vfn, a, i);
 		} else {
 			a = vcallbacks[arr[i]](vfn, a, i);
